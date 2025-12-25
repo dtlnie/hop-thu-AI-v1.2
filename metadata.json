@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Smart Student Psychological Support System",
+  "description": "Hệ thống hỗ trợ tâm lý học sinh thông minh tích hợp AI, phân tích rủi ro 4 cấp độ và các công cụ tự chữa lành.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
