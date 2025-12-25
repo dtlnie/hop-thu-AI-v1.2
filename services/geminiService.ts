@@ -12,19 +12,20 @@ export const getGeminiStreamResponse = async (
   signal?: AbortSignal
 ) => {
   try {
-    // Khởi tạo instance mới ngay trước khi gọi để tránh lỗi kết nối cũ
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Khởi tạo SDK theo chuẩn mới nhất
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
     const persona = PERSONAS.find(p => p.id === personaId);
     
     const dynamicPrompt = SYSTEM_PROMPT
       .replace("{persona_name}", persona?.name || "")
       .replace("{persona_role}", persona?.role || "")
-      .replace("{user_memory}", userMemory || "Chưa có thông tin cũ.");
+      .replace("{user_memory}", userMemory || "Chưa có dữ liệu cũ.");
 
-    const result = await ai.models.generateContent({
+    // Sử dụng model 'gemini-3-flash-preview' cho các tác vụ text nhanh
+    const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [
-        ...history.map(h => ({ 
+        ...history.slice(-4).map(h => ({ 
           role: h.role === 'user' ? 'user' : 'model', 
           parts: [{ text: h.content }] 
         })),
@@ -34,33 +35,31 @@ export const getGeminiStreamResponse = async (
         systemInstruction: dynamicPrompt,
         responseMimeType: "application/json",
       }
-    }, { signal });
+    });
 
-    const fullText = result.text || "";
+    const fullText = response.text || "";
     
     try {
-      // Làm sạch dữ liệu rác nếu AI trả về kèm markdown
+      // Làm sạch dữ liệu rác nếu có
       const cleanJson = fullText.replace(/```json/g, "").replace(/```/g, "").trim();
-      const parsed = JSON.parse(cleanJson);
-      return parsed;
+      return JSON.parse(cleanJson);
     } catch (e) {
-      console.warn("AI không trả về JSON chuẩn, đang trả về text thuần.");
+      console.warn("Dữ liệu trả về không phải JSON chuẩn:", fullText);
       return {
-        reply: fullText || "Mình đang lắng nghe đây, bạn nói tiếp đi...",
+        reply: fullText || "Mình đang ở đây lắng nghe bạn.",
         riskLevel: RiskLevel.GREEN,
         new_insights: ""
       };
     }
   } catch (error: any) {
-    if (error.name === 'AbortError') throw error;
-    
-    // Log lỗi chi tiết để kiểm tra trên Vercel console
-    console.error("Gemini API Error Detail:", error.message);
-    
-    return {
-      reply: "Mình gặp chút khó khăn khi kết nối. Bạn kiểm tra lại mạng hoặc thử gửi lại tin nhắn nhé!",
-      riskLevel: RiskLevel.GREEN,
-      new_insights: ""
-    };
+    console.error("Lỗi Gemini API:", error);
+    // Nếu lỗi 404 hoặc 403, có thể do model hoặc API key
+    if (error.message?.includes("not found")) {
+      return {
+        reply: "Hệ thống đang bảo trì Model, bạn quay lại sau nhé!",
+        riskLevel: RiskLevel.GREEN
+      };
+    }
+    throw error;
   }
 };
