@@ -1,7 +1,7 @@
 
-import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
-import { PersonaType, RiskLevel, UserMemory } from "../types";
-import { SYSTEM_PROMPT, PERSONAS } from "../constants";
+import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { PersonaType, RiskLevel } from "../types.ts";
+import { SYSTEM_PROMPT, PERSONAS } from "../constants.tsx";
 
 export const getGeminiStreamResponse = async (
   message: string, 
@@ -32,7 +32,6 @@ export const getGeminiStreamResponse = async (
       config: {
         systemInstruction: dynamicPrompt,
         responseMimeType: "application/json",
-        // Tối ưu tốc độ: Không đặt thinkingBudget quá cao để flash xử lý tức thì
         thinkingConfig: { thinkingBudget: 0 } 
       }
     }, { signal });
@@ -42,9 +41,6 @@ export const getGeminiStreamResponse = async (
       const text = (chunk as GenerateContentResponse).text;
       if (text) {
         fullText += text;
-        // Vì API trả về JSON, chúng ta cần đợi đến khi hoàn thành để parse
-        // Nhưng nếu muốn stream text thô, chúng ta sẽ cần refactor prompt.
-        // Ở đây để đảm bảo tính năng rủi ro, ta vẫn xử lý JSON khi kết thúc.
       }
     }
 
@@ -52,7 +48,6 @@ export const getGeminiStreamResponse = async (
       const parsed = JSON.parse(fullText);
       return parsed;
     } catch (e) {
-      // Fallback nếu JSON bị lỗi do stream ngắt quãng
       return {
         reply: fullText || "Mình đang suy nghĩ một chút, bạn chờ tí nhé.",
         riskLevel: RiskLevel.GREEN,

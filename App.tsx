@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
-import AuthPage from './components/AuthPage';
-import Chatbot from './components/Chatbot';
-import SafeCorner from './components/SafeCorner';
-import TeacherDashboard from './components/TeacherDashboard';
-import { User } from './types';
+import AuthPage from './components/AuthPage.tsx';
+import Chatbot from './components/Chatbot.tsx';
+import SafeCorner from './components/SafeCorner.tsx';
+import TeacherDashboard from './components/TeacherDashboard.tsx';
+import { User } from './types.ts';
 import { MessageSquare, ShieldCheck, BarChart3, LogOut, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 
