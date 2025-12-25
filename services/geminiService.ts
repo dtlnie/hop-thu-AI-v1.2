@@ -12,15 +12,11 @@ export const getGeminiStreamResponse = async (
   signal?: AbortSignal
 ) => {
   try {
-    // API_KEY được inject bởi Vite define
+    // Vite sẽ thay thế process.env.API_KEY bằng giá trị thực tế lúc build
     const apiKey = process.env.API_KEY;
     
-    if (!apiKey || apiKey === '' || apiKey === 'undefined') {
-      return {
-        reply: "⚠️ LỖI CẤU HÌNH: Ứng dụng chưa nhận được API Key. Bạn hãy kiểm tra đã thêm 'API_KEY' vào Environment Variables trên Vercel và thực hiện 'Redeploy' chưa nhé!",
-        riskLevel: RiskLevel.GREEN,
-        new_insights: ""
-      };
+    if (!apiKey || apiKey === "undefined" || apiKey === "") {
+      throw new Error("MISSING_API_KEY");
     }
 
     const ai = new GoogleGenAI({ apiKey });
@@ -49,11 +45,9 @@ export const getGeminiStreamResponse = async (
     const fullText = response.text || "";
     
     try {
-      // Làm sạch dữ liệu nếu model trả về markdown
       const cleanJson = fullText.replace(/```json/g, "").replace(/```/g, "").trim();
       return JSON.parse(cleanJson);
     } catch (e) {
-      // Fallback nếu AI không trả về JSON đúng định dạng
       return {
         reply: fullText,
         riskLevel: RiskLevel.GREEN,
@@ -62,10 +56,17 @@ export const getGeminiStreamResponse = async (
     }
   } catch (error: any) {
     console.error("Lỗi AI:", error);
-    if (error.name === 'AbortError') throw error;
+    
+    if (error.message === "MISSING_API_KEY") {
+      return {
+        reply: "⚠️ Lỗi: Chưa tìm thấy API Key. Bạn hãy kiểm tra đã thêm 'API_KEY' vào Vercel Environment Variables và thực hiện REDEPLOY chưa nhé!",
+        riskLevel: RiskLevel.GREEN,
+        new_insights: ""
+      };
+    }
     
     return {
-      reply: "Mình gặp chút lỗi kết nối với máy chủ AI. Bạn thử tải lại trang hoặc nhắn lại cho mình sau vài giây nhé!",
+      reply: "Mình đang gặp chút trục trặc khi kết nối với bộ não AI. Bạn thử nhắn lại sau vài giây hoặc kiểm tra API Key của mình nhé!",
       riskLevel: RiskLevel.GREEN,
       new_insights: ""
     };
