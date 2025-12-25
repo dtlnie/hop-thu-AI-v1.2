@@ -5,8 +5,8 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   define: {
-    // Cho phép mã nguồn truy cập process.env (đặc biệt là API_KEY từ Vercel)
-    'process.env': process.env
+    // Đảm bảo API_KEY được "đóng gói" thẳng vào code khi build trên Vercel
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
   },
   build: {
     outDir: 'dist',

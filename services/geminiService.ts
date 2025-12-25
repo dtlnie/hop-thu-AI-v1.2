@@ -12,23 +12,27 @@ export const getGeminiStreamResponse = async (
   signal?: AbortSignal
 ) => {
   try {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-      throw new Error("API_KEY_MISSING");
+    // Luôn khởi tạo instance mới để tránh các lỗi trạng thái cũ
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    
+    if (!process.env.API_KEY) {
+      return {
+        reply: "Hệ thống chưa nhận được chìa khóa API. Vui lòng kiểm tra lại cấu hình Environment Variables trên Vercel.",
+        riskLevel: RiskLevel.GREEN,
+        new_insights: ""
+      };
     }
 
-    const ai = new GoogleGenAI({ apiKey });
     const persona = PERSONAS.find(p => p.id === personaId);
-    
     const dynamicPrompt = SYSTEM_PROMPT
       .replace("{persona_name}", persona?.name || "")
       .replace("{persona_role}", persona?.role || "")
-      .replace("{user_memory}", userMemory || "Chưa có dữ liệu cũ.");
+      .replace("{user_memory}", userMemory || "Mới bắt đầu trò chuyện.");
 
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [
-        ...history.slice(-6).map(h => ({ 
+        ...history.map(h => ({ 
           role: h.role === 'user' ? 'user' : 'model', 
           parts: [{ text: h.content }] 
         })),
@@ -43,34 +47,24 @@ export const getGeminiStreamResponse = async (
     const fullText = response.text || "";
     
     try {
-      // Loại bỏ các ký tự markdown JSON nếu AI trả về nhầm định dạng
+      // Làm sạch dữ liệu rác nếu AI trả về kèm tag ```json
       const cleanJson = fullText.replace(/```json/g, "").replace(/```/g, "").trim();
       return JSON.parse(cleanJson);
     } catch (e) {
-      console.warn("Dữ liệu trả về không phải JSON chuẩn, cố gắng trích xuất text...");
       return {
-        reply: fullText || "Mình đang ở đây lắng nghe bạn.",
+        reply: fullText || "Mình đang lắng nghe, bạn cứ nói tiếp đi...",
         riskLevel: RiskLevel.GREEN,
         new_insights: ""
       };
     }
   } catch (error: any) {
-    console.error("Lỗi Gemini API:", error);
+    console.error("Lỗi kết nối AI:", error);
+    if (error.name === 'AbortError') throw error;
     
-    if (error.message === "API_KEY_MISSING") {
-      return {
-        reply: "Hệ thống chưa cấu hình API Key. Vui lòng kiểm tra lại cài đặt môi trường!",
-        riskLevel: RiskLevel.GREEN
-      };
-    }
-
-    if (error.message?.includes("404") || error.message?.includes("not found")) {
-      return {
-        reply: "Mô hình AI đang bận hoặc đang được cập nhật. Bạn thử lại sau ít phút nhé!",
-        riskLevel: RiskLevel.GREEN
-      };
-    }
-
-    throw error;
+    return {
+      reply: "Có chút trục trặc khi kết nối với tâm hồn mình rồi. Bạn thử gửi lại tin nhắn xem sao nhé?",
+      riskLevel: RiskLevel.GREEN,
+      new_insights: ""
+    };
   }
 };

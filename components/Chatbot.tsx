@@ -71,12 +71,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
     abortControllerRef.current = controller;
 
     try {
-      const historyForAI = (chatHistory[selectedPersona] || []).slice(-6).map(m => ({ role: m.role, content: m.content }));
-      
       const response = await getGeminiStreamResponse(
         text, 
         selectedPersona, 
-        historyForAI, 
+        (chatHistory[selectedPersona] || []).slice(-6).map(m => ({ role: m.role, content: m.content })), 
         userMemory.insights,
         () => {},
         controller.signal
@@ -118,7 +116,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
           [selectedPersona]: [...(prev[selectedPersona] || []), { 
             id: `err-${Date.now()}`, 
             role: 'assistant', 
-            content: "Kết nối mạng có chút vấn đề, bạn kiểm tra lại hoặc thử nhắn lại cho mình nhé.", 
+            content: "Có lỗi mạng một chút, bạn kiểm tra lại hoặc thử nhắn lại cho mình nhé.", 
             timestamp: Date.now() 
           }]
         }));
@@ -132,9 +130,9 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
   if (!selectedPersona) {
     return (
       <div className="flex flex-col items-center px-4 max-w-6xl mx-auto pb-10 overflow-y-auto">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10 mt-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8 mt-4">
           <h2 className="text-2xl sm:text-4xl font-black text-indigo-950 mb-3 leading-tight">Chào {user.username},<br/>hôm nay bạn thế nào?</h2>
-          <p className="text-indigo-600 font-bold bg-white/60 px-5 py-2 rounded-full inline-block shadow-sm text-xs uppercase tracking-wider">Chọn người đồng hành của bạn</p>
+          <p className="text-indigo-600 font-bold bg-white/60 px-5 py-2 rounded-full inline-block shadow-sm text-xs uppercase tracking-wider">Chọn một người bạn để tâm sự</p>
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full mb-8">
@@ -160,9 +158,9 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
           href="https://discordapp.com/users/1006810420037828678" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-2xl text-[10px] font-black hover:bg-indigo-50 transition-all shadow-sm tracking-widest uppercase border border-indigo-100"
+          className="flex items-center gap-2 px-6 py-3 bg-white/80 text-indigo-600 rounded-2xl text-[10px] font-black hover:bg-white transition-all shadow-sm tracking-widest uppercase border border-indigo-100"
         >
-          <ExternalLink size={14} /> LIÊN HỆ ĐỘI NGŨ KỸ THUẬT
+          <ExternalLink size={14} /> HỖ TRỢ KỸ THUẬT 24/7
         </a>
       </div>
     );
@@ -186,7 +184,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
             </div>
             <div>
               <h3 className="font-black text-indigo-950 text-sm leading-tight">{activePersona?.name}</h3>
-              <p className="text-[8px] font-black text-emerald-600 uppercase">AI đang trực tuyến</p>
+              <p className="text-[8px] font-black text-emerald-600 uppercase">AI Đang trực tuyến</p>
             </div>
           </div>
         </div>
@@ -196,7 +194,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
         {currentMessages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full opacity-30 text-center px-4">
             <MessageCircle size={32} className="text-indigo-300 mb-4" />
-            <p className="text-indigo-950 font-black text-lg">Mọi tâm tư của bạn đều được lắng nghe và bảo mật.</p>
+            <p className="text-indigo-950 font-black text-lg">Mọi điều bạn nói đều được bảo mật tuyệt đối.</p>
           </div>
         ) : (
           currentMessages.map((msg) => (
@@ -221,7 +219,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
         <div ref={chatEndRef} />
       </div>
 
-      <div className="p-4 sm:p-5 bg-white/90 border-t border-indigo-50">
+      <div className="p-4 sm:p-5 bg-white/95 border-t border-indigo-50">
         <div className="relative flex items-center gap-2 max-w-4xl mx-auto">
           <input
             disabled={isTyping}
@@ -229,7 +227,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder={isTyping ? "AI đang phản hồi..." : "Trút bỏ gánh nặng tại đây..."}
+            placeholder={isTyping ? "Đang suy nghĩ..." : "Nhập lời muốn nói..."}
             className="w-full bg-indigo-50/50 border-2 border-transparent focus:border-indigo-400 focus:bg-white rounded-2xl px-5 py-4 pr-14 outline-none transition-all text-indigo-950 font-bold placeholder:text-indigo-300 text-base shadow-inner"
           />
           {isTyping ? (
