@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { PersonaType, RiskLevel } from "../types.ts";
 import { SYSTEM_PROMPT, PERSONAS } from "../constants.tsx";
 
@@ -20,7 +20,7 @@ export const getGeminiStreamResponse = async (
       .replace("{persona_role}", persona?.role || "")
       .replace("{user_memory}", userMemory || "Chưa có thông tin cũ.");
 
-    const stream = await ai.models.generateContentStream({
+    const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: [
         ...history.map(h => ({ 
@@ -32,22 +32,18 @@ export const getGeminiStreamResponse = async (
       config: {
         systemInstruction: dynamicPrompt,
         responseMimeType: "application/json",
-        thinkingConfig: { thinkingBudget: 0 } 
       }
     }, { signal });
 
-    let fullText = "";
-    for await (const chunk of stream) {
-      const text = (chunk as GenerateContentResponse).text;
-      if (text) {
-        fullText += text;
-      }
-    }
-
+    const fullText = response.text || "";
+    
     try {
-      const parsed = JSON.parse(fullText);
+      // Làm sạch text nếu AI trả về markdown JSON
+      const cleanJson = fullText.replace(/```json/g, "").replace(/```/g, "").trim();
+      const parsed = JSON.parse(cleanJson);
       return parsed;
     } catch (e) {
+      console.error("JSON Parse Error:", fullText);
       return {
         reply: fullText || "Mình đang suy nghĩ một chút, bạn chờ tí nhé.",
         riskLevel: RiskLevel.GREEN,
@@ -56,9 +52,9 @@ export const getGeminiStreamResponse = async (
     }
   } catch (error: any) {
     if (error.name === 'AbortError') throw error;
-    console.error("Gemini Error:", error);
+    console.error("Gemini API Error:", error);
     return {
-      reply: "Có chút trục trặc nhỏ, mình vẫn ở đây lắng nghe bạn nè.",
+      reply: "Hệ thống đang bận một chút, bạn thử gửi lại tin nhắn cho mình nhé!",
       riskLevel: RiskLevel.GREEN,
       new_insights: ""
     };

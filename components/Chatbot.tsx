@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { User, PersonaType, Message, RiskLevel, ChatState, UserMemory } from '../types';
 import { PERSONAS } from '../constants';
 import { getGeminiStreamResponse } from '../services/geminiService';
-import { Send, MessageCircle, Square, Sparkles, RefreshCcw, ExternalLink } from 'lucide-react';
+import { Send, MessageCircle, Square, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface ChatbotProps {
@@ -32,14 +32,15 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
 
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [currentRisk, setCurrentRisk] = useState<RiskLevel>(RiskLevel.GREEN);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const currentMessages = selectedPersona ? (chatHistory[selectedPersona] || []) : [];
 
   const scrollToBottom = useCallback(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, []);
 
   useEffect(() => {
@@ -77,7 +78,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
         selectedPersona, 
         historyForAI, 
         userMemory.insights,
-        (chunk) => { /* Handle incremental UI if needed */ },
+        () => {},
         controller.signal
       );
 
@@ -90,9 +91,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
       };
 
       setChatHistory(prev => ({ ...prev, [selectedPersona]: [...(prev[selectedPersona] || []), aiMsg] }));
-      setCurrentRisk((response.riskLevel as RiskLevel) || RiskLevel.GREEN);
 
-      // Tính năng Tự học: Cập nhật Memory Bank
       if (response.new_insights) {
         setUserMemory(prev => ({
           insights: prev.insights + " | " + response.new_insights,
@@ -117,7 +116,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
         const errId = `err-${Date.now()}`;
         setChatHistory(prev => ({
           ...prev, 
-          [selectedPersona]: [...(prev[selectedPersona] || []), { id: errId, role: 'assistant', content: "Kết nối hơi chậm, bạn thử lại nhé!", timestamp: Date.now() }]
+          [selectedPersona]: [...(prev[selectedPersona] || []), { id: errId, role: 'assistant', content: "Có chút trục trặc kết nối, bạn thử lại nhé!", timestamp: Date.now() }]
         }));
       }
     } finally {
@@ -133,9 +132,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
           <h2 className="text-3xl sm:text-4xl font-black text-indigo-950 mb-3">Chào {user.username}, hôm nay bạn thế nào?</h2>
           <div className="flex flex-col items-center gap-2">
             <p className="text-indigo-600 font-bold bg-white/50 px-6 py-2 rounded-full inline-block shadow-sm">Chọn một người bạn để trút bầu tâm sự</p>
-            {userMemory.insights && (
-              <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest mt-2">✨ AI đã ghi nhớ đặc điểm của bạn để hỗ trợ tốt hơn</p>
-            )}
           </div>
         </motion.div>
 
@@ -146,9 +142,9 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
               whileHover={{ y: -10, scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setSelectedPersona(p.id)}
-              className="glass p-8 rounded-[40px] flex flex-col items-center text-center group border-white shadow-xl hover:shadow-indigo-200/50 transition-all duration-300"
+              className="glass p-8 rounded-[40px] flex flex-col items-center text-center group border-white shadow-xl transition-all duration-300"
             >
-              <div className={`${p.color} p-5 rounded-3xl mb-6 group-hover:rotate-6 transition-transform shadow-lg`}>
+              <div className={`${p.color} p-5 rounded-3xl mb-6 shadow-lg`}>
                 {p.icon}
               </div>
               <h3 className="font-black text-indigo-950 text-xl mb-1">{p.name}</h3>
@@ -197,7 +193,6 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
           <div className="flex flex-col items-center justify-center h-full opacity-40 text-center">
             <MessageCircle size={40} className="text-indigo-200 mb-4" />
             <p className="text-indigo-950 font-black text-xl mb-1">Hãy bắt đầu câu chuyện của bạn...</p>
-            <p className="text-indigo-700 font-bold text-sm">Mình luôn ở đây để lắng nghe và thấu hiểu.</p>
           </div>
         ) : (
           currentMessages.map((msg) => (
@@ -224,6 +219,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
 
       <div className="p-6 bg-white/90 backdrop-blur-xl border-t border-indigo-50">
         <div className="relative flex items-center gap-3 max-w-4xl mx-auto">
+          {/* text-base (16px) là cực kỳ quan trọng để chống auto-zoom trên iOS */}
           <input
             disabled={isTyping}
             type="text"
@@ -231,7 +227,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder={isTyping ? "AI đang trả lời..." : "Nhập lời muốn nói..."}
-            className="w-full bg-indigo-50/30 border-2 border-indigo-50/50 rounded-3xl px-6 py-5 pr-16 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all text-indigo-950 font-bold placeholder:text-indigo-300"
+            className="w-full bg-indigo-50/30 border-2 border-indigo-50/50 rounded-3xl px-6 py-5 pr-16 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all text-indigo-950 font-bold placeholder:text-indigo-300 text-base"
           />
           {isTyping ? (
             <button onClick={handleStopRequest} className="absolute right-2 p-4 bg-rose-500 text-white rounded-2xl hover:bg-rose-600 transition-all">
