@@ -71,7 +71,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
     abortControllerRef.current = controller;
 
     try {
-      const historyForAI = currentMessages.slice(-8).map(m => ({ role: m.role, content: m.content }));
+      const historyForAI = (chatHistory[selectedPersona] || []).slice(-6).map(m => ({ role: m.role, content: m.content }));
       
       const response = await getGeminiStreamResponse(
         text, 
@@ -94,7 +94,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
 
       if (response.new_insights) {
         setUserMemory(prev => ({
-          insights: prev.insights + " | " + response.new_insights,
+          insights: (prev.insights + " | " + response.new_insights).slice(-500),
           lastUpdated: Date.now()
         }));
       }
@@ -113,10 +113,9 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
       }
     } catch (error: any) {
       if (error.name !== 'AbortError') {
-        const errId = `err-${Date.now()}`;
         setChatHistory(prev => ({
           ...prev, 
-          [selectedPersona]: [...(prev[selectedPersona] || []), { id: errId, role: 'assistant', content: "Có chút trục trặc kết nối, bạn thử lại nhé!", timestamp: Date.now() }]
+          [selectedPersona]: [...(prev[selectedPersona] || []), { id: `err-${Date.now()}`, role: 'assistant', content: "Có chút trục trặc, mình vẫn ở đây lắng nghe bạn nè.", timestamp: Date.now() }]
         }));
       }
     } finally {
@@ -131,7 +130,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12 mt-8">
           <h2 className="text-3xl sm:text-4xl font-black text-indigo-950 mb-3">Chào {user.username}, hôm nay bạn thế nào?</h2>
           <div className="flex flex-col items-center gap-2">
-            <p className="text-indigo-600 font-bold bg-white/50 px-6 py-2 rounded-full inline-block shadow-sm">Chọn một người bạn để trút bầu tâm sự</p>
+            <p className="text-indigo-600 font-bold bg-white/50 px-6 py-2 rounded-full inline-block shadow-sm text-sm">Chọn một người bạn để trút bầu tâm sự</p>
           </div>
         </motion.div>
 
@@ -158,7 +157,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
           href="https://discordapp.com/users/1006810420037828678" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="flex items-center gap-2 px-6 py-3 bg-indigo-50 text-indigo-600 rounded-2xl text-xs font-black hover:bg-indigo-100 transition-all shadow-sm mb-10"
+          className="flex items-center gap-2 px-6 py-3 bg-indigo-50 text-indigo-600 rounded-2xl text-[10px] font-black hover:bg-indigo-100 transition-all shadow-sm mb-10 tracking-widest uppercase"
         >
           <ExternalLink size={14} /> LIÊN HỆ CHÚNG TÔI QUA DISCORD
         </a>
@@ -178,7 +177,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
           >
             QUAY LẠI
           </button>
-          <div className={`${activePersona?.color} p-2.5 rounded-xl shadow-md`}>
+          <div className={`${activePersona?.color} p-2.5 rounded-xl shadow-md hidden sm:block`}>
             {activePersona?.icon}
           </div>
           <div>
@@ -217,9 +216,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
         <div ref={chatEndRef} />
       </div>
 
-      <div className="p-6 bg-white/90 backdrop-blur-xl border-t border-indigo-50">
+      <div className="p-4 sm:p-6 bg-white/90 backdrop-blur-xl border-t border-indigo-50">
         <div className="relative flex items-center gap-3 max-w-4xl mx-auto">
-          {/* text-base (16px) là cực kỳ quan trọng để chống auto-zoom trên iOS */}
           <input
             disabled={isTyping}
             type="text"
@@ -227,19 +225,19 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder={isTyping ? "AI đang trả lời..." : "Nhập lời muốn nói..."}
-            className="w-full bg-indigo-50/30 border-2 border-indigo-50/50 rounded-3xl px-6 py-5 pr-16 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all text-indigo-950 font-bold placeholder:text-indigo-300 text-base"
+            className="w-full bg-indigo-50/30 border-2 border-indigo-50/50 rounded-3xl px-6 py-4 pr-16 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all text-indigo-950 font-bold placeholder:text-indigo-300 text-base shadow-inner"
           />
           {isTyping ? (
-            <button onClick={handleStopRequest} className="absolute right-2 p-4 bg-rose-500 text-white rounded-2xl hover:bg-rose-600 transition-all">
-              <Square size={20} fill="currentColor" />
+            <button onClick={handleStopRequest} className="absolute right-2 p-3 bg-rose-500 text-white rounded-2xl hover:bg-rose-600 transition-all shadow-lg">
+              <Square size={18} fill="currentColor" />
             </button>
           ) : (
             <button
               disabled={!input.trim()}
               onClick={handleSendMessage}
-              className="absolute right-2 p-4 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 disabled:bg-indigo-200 transition-all"
+              className="absolute right-2 p-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 disabled:bg-indigo-200 transition-all shadow-lg"
             >
-              <Send size={20} />
+              <Send size={18} />
             </button>
           )}
         </div>
