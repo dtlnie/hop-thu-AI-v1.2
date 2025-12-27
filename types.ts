@@ -13,10 +13,12 @@ export interface User {
   username: string;
   role: 'student' | 'teacher';
   avatar: string;
+  school: string;     // Tên trường
+  className: string;  // Tên lớp
 }
 
 export interface UserMemory {
-  insights: string; // Tóm tắt đặc điểm tâm lý, sự kiện quan trọng
+  insights: string; 
   lastUpdated: number;
 }
 
@@ -35,6 +37,8 @@ export interface ChatState {
 export interface StudentAlert {
   id: string;
   studentName: string;
+  school: string;     // Trường của học sinh
+  className: string;  // Lớp của học sinh
   riskLevel: RiskLevel;
   lastMessage: string;
   timestamp: number;

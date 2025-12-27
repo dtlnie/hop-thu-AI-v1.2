@@ -102,12 +102,14 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
         alerts.push({
           id: Date.now().toString(),
           studentName: user.username,
+          school: user.school || "Không rõ",
+          className: user.className || "Không rõ",
           riskLevel: response.riskLevel,
           lastMessage: text,
           timestamp: Date.now(),
           personaUsed: selectedPersona
         });
-        localStorage.setItem('spss_alerts', JSON.stringify(alerts.slice(-30)));
+        localStorage.setItem('spss_alerts', JSON.stringify(alerts.slice(-100)));
       }
     } catch (error: any) {
       if (error.name !== 'AbortError') {
@@ -116,7 +118,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
           [selectedPersona]: [...(prev[selectedPersona] || []), { 
             id: `err-${Date.now()}`, 
             role: 'assistant', 
-            content: "Có lỗi mạng một chút, bạn kiểm tra lại hoặc thử nhắn lại cho mình nhé.", 
+            content: "Có lỗi mạng một chút, bạn thử lại sau nhé.", 
             timestamp: Date.now() 
           }]
         }));
@@ -132,7 +134,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ user }) => {
       <div className="flex flex-col items-center px-4 max-w-6xl mx-auto pb-10 overflow-y-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8 mt-4">
           <h2 className="text-2xl sm:text-4xl font-black text-indigo-950 mb-3 leading-tight">Chào {user.username},<br/>hôm nay bạn thế nào?</h2>
-          <p className="text-indigo-600 font-bold bg-white/60 px-5 py-2 rounded-full inline-block shadow-sm text-xs uppercase tracking-wider">Chọn một người bạn để tâm sự</p>
+          <p className="text-indigo-600 font-bold bg-white/60 px-5 py-2 rounded-full inline-block shadow-sm text-xs uppercase tracking-wider">{user.school} - Lớp {user.className}</p>
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full mb-8">
