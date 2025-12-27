@@ -3,9 +3,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { RiskLevel, StudentAlert, User } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  Cell, AreaChart, Area
+  Cell
 } from 'recharts';
-import { AlertTriangle, Clock, School, Trash2, Users, Search } from 'lucide-react';
+import { AlertTriangle, Clock, School, Trash2, Users, Search, Key, MessageCircle, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { normalizeString } from '../utils/normalize';
 
@@ -14,6 +14,9 @@ const TeacherDashboard: React.FC = () => {
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [selectedSchool, setSelectedSchool] = useState<string>('');
   const [selectedClass, setSelectedClass] = useState<string>('');
+  const [activationKey, setActivationKey] = useState<string>('');
+  const [keyError, setKeyError] = useState<string>('');
+  const [isKeyVerified, setIsKeyVerified] = useState<boolean>(false);
   const [selectedCase, setSelectedCase] = useState<StudentAlert | null>(null);
   const [activeTab, setActiveTab] = useState<'monitor' | 'students'>('monitor');
 
@@ -36,18 +39,31 @@ const TeacherDashboard: React.FC = () => {
   }, [allUsers, selectedSchool]);
 
   const filteredAlerts = useMemo(() => {
-    if (!selectedSchool || !selectedClass) return [];
+    if (!selectedSchool || !selectedClass || !isKeyVerified) return [];
     return allAlerts.filter(a => normalizeString(a.school) === normalizeString(selectedSchool) && normalizeString(a.className) === normalizeString(selectedClass));
-  }, [allAlerts, selectedSchool, selectedClass]);
+  }, [allAlerts, selectedSchool, selectedClass, isKeyVerified]);
 
   const filteredStudents = useMemo(() => {
-    if (!selectedSchool || !selectedClass) return [];
+    if (!selectedSchool || !selectedClass || !isKeyVerified) return [];
     return allUsers.filter(u => 
       u.role === 'student' && 
       normalizeString(u.school) === normalizeString(selectedSchool) && 
       normalizeString(u.className) === normalizeString(selectedClass)
     );
-  }, [allUsers, selectedSchool, selectedClass]);
+  }, [allUsers, selectedSchool, selectedClass, isKeyVerified]);
+
+  const handleVerifyAndStart = () => {
+    setKeyError('');
+    if (!selectedSchool || !selectedClass) {
+      setKeyError('Vui lòng chọn Trường và Lớp trước');
+      return;
+    }
+    if (activationKey !== 'kc1') {
+      setKeyError('Cần liên hệ chúng tôi qua Discord để có key');
+      return;
+    }
+    setIsKeyVerified(true);
+  };
 
   const handleRemoveStudent = (studentId: string) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa học sinh này khỏi danh sách lớp? Mọi dữ liệu tài khoản của em sẽ bị xóa.")) return;
@@ -64,44 +80,90 @@ const TeacherDashboard: React.FC = () => {
     { name: 'Khẩn cấp', value: filteredAlerts.filter(a => a.riskLevel === RiskLevel.RED).length, color: '#dc2626' },
   ];
 
-  const trendData = [
-    { day: 'T2', stress: 20, joy: 80 },
-    { day: 'T3', stress: 35, joy: 65 },
-    { day: 'T4', stress: 45, joy: 55 },
-    { day: 'T5', stress: 70, joy: 30 },
-    { day: 'T6', stress: 40, joy: 60 },
-    { day: 'T7', stress: 15, joy: 85 },
-  ];
-
-  if (!selectedClass) {
+  if (!isKeyVerified || !selectedClass) {
     return (
-      <div className="h-[70vh] flex flex-col items-center justify-center text-center space-y-6">
-        <div className="bg-indigo-100 p-8 rounded-[40px] text-indigo-600 shadow-inner">
-          <School size={80} strokeWidth={1.5} />
-        </div>
-        <div>
-          <h2 className="text-3xl font-black text-indigo-950 uppercase tracking-tight">CHƯA CHỌN LỚP QUẢN LÝ</h2>
-          <p className="text-indigo-500 font-bold mt-2">Vui lòng chọn Trường và Lớp để bắt đầu giám sát.</p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-          <select 
-            value={selectedSchool}
-            onChange={(e) => setSelectedSchool(e.target.value)}
-            className="flex-1 px-6 py-4 rounded-2xl glass border-2 border-indigo-100 outline-none font-bold text-indigo-900"
-          >
-            <option value="">Chọn Trường...</option>
-            {uniqueSchools.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <select 
-            value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
-            disabled={!selectedSchool}
-            className="flex-1 px-6 py-4 rounded-2xl glass border-2 border-indigo-100 outline-none font-bold text-indigo-900 disabled:opacity-50"
-          >
-            <option value="">Chọn Lớp...</option>
-            {classesForSchool.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
+      <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-10">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass w-full max-w-xl p-8 sm:p-10 rounded-[40px] shadow-2xl border-white text-center"
+        >
+          <div className="bg-amber-100 p-8 rounded-[40px] text-amber-600 shadow-inner inline-block mb-6">
+            <School size={64} strokeWidth={1.5} />
+          </div>
+          
+          <h2 className="text-3xl font-black text-indigo-950 uppercase tracking-tight mb-2">QUẢN LÝ LỚP HỌC</h2>
+          <p className="text-indigo-500 font-bold mb-8 italic text-sm">Xác thực quyền hạn để truy cập dữ liệu giám sát AI.</p>
+          
+          <div className="space-y-4 max-w-md mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <select 
+                value={selectedSchool}
+                onChange={(e) => { setSelectedSchool(e.target.value); setIsKeyVerified(false); }}
+                className="w-full px-5 py-4 rounded-2xl glass border-2 border-indigo-100 outline-none font-bold text-indigo-900 focus:border-indigo-400 transition-all"
+              >
+                <option value="">Chọn Trường...</option>
+                {uniqueSchools.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <select 
+                value={selectedClass}
+                onChange={(e) => { setSelectedClass(e.target.value); setIsKeyVerified(false); }}
+                disabled={!selectedSchool}
+                className="w-full px-5 py-4 rounded-2xl glass border-2 border-indigo-100 outline-none font-bold text-indigo-900 disabled:opacity-50 focus:border-indigo-400 transition-all"
+              >
+                <option value="">Chọn Lớp...</option>
+                {classesForSchool.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div className="relative pt-4">
+              <label className="block text-left text-[10px] font-black text-amber-600 uppercase mb-2 tracking-widest ml-1">Mã kích hoạt lớp học</label>
+              <div className="relative">
+                <input 
+                  type="text"
+                  value={activationKey}
+                  onChange={(e) => setActivationKey(e.target.value)}
+                  placeholder="Nhập Key xác thực..."
+                  className="w-full px-5 py-4 pl-12 rounded-2xl bg-amber-50/50 border-2 border-amber-200 focus:border-amber-500 focus:bg-white outline-none font-black text-indigo-950 transition-all shadow-inner"
+                />
+                <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500" size={20} />
+              </div>
+              
+              <AnimatePresence>
+                {keyError && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    className="mt-3 flex items-center gap-2 p-3 bg-rose-50 border border-rose-100 rounded-xl text-rose-600 text-[11px] font-black"
+                  >
+                    <AlertCircle size={14} className="shrink-0" />
+                    {keyError}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
+              <p className="mt-4 text-[10px] font-bold text-indigo-400">
+                Gợi ý: Dùng mã <span className="text-amber-600 font-black">kc1</span> để dùng thử.
+              </p>
+            </div>
+
+            <button 
+              onClick={handleVerifyAndStart}
+              className="w-full mt-6 py-5 bg-indigo-600 text-white rounded-3xl font-black shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
+            >
+              BẮT ĐẦU GIÁM SÁT
+            </button>
+            
+            <a 
+              href="https://discordapp.com/users/1006810420037828678" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="mt-4 flex items-center justify-center gap-2 text-indigo-400 hover:text-indigo-600 transition-colors text-[10px] font-black uppercase tracking-widest"
+            >
+              <MessageCircle size={14} /> Liên hệ nhận KEY chính thức
+            </a>
+          </div>
+        </motion.div>
       </div>
     );
   }
@@ -132,7 +194,7 @@ const TeacherDashboard: React.FC = () => {
             DANH SÁCH LỚP
           </button>
           <button 
-            onClick={() => { setSelectedClass(''); setSelectedSchool(''); }}
+            onClick={() => { setSelectedClass(''); setIsKeyVerified(false); setActivationKey(''); setKeyError(''); }}
             className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl font-black text-[10px] uppercase hover:bg-rose-100 transition"
           >
             ĐỔI LỚP
